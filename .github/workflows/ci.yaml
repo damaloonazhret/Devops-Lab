@@ -67,3 +67,45 @@ jobs:
           tags: |
             ghcr.io/damaloonazhret/devops-lab:latest
             ghcr.io/damaloonazhret/devops-lab:${{ github.sha }}
+
+  deploy:
+    name: Deploy to production
+    needs: publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment: production
+
+    permissions: { }
+
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy application
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          ssh -T \
+            -i ~/.ssh/deploy_key \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "ci-deploy@$VPS_HOST" \
+            "$IMAGE_TAG"
