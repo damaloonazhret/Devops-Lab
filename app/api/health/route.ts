@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
-export const dynamic = "force-dynamic";
-export function GET() {
+import { connection, NextResponse } from "next/server";
+
+export async function GET() {
+  await connection();
+
   return NextResponse.json({ status: "okay" });
 }
