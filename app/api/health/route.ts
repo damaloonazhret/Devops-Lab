@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
-export function GET() {
+export async function GET() {
+  await connection();
+
   return NextResponse.json({ status: "okay" });
 }
